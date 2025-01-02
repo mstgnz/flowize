@@ -1,0 +1,110 @@
+<div class="wrapper vertical-header">
+  <div id="pre-loader">
+    <img src="/assets/img/pre-loader/loader-01.svg" alt="" />
+  </div>
+  <section id="homesection"></section>
+  <div class="menu-responsive"><a href="/"><b>Saha Kolay</b></a> <a class="but" href="#">
+      <span class="ti-menu"></span></a>
+  </div>
+  <header id="left-header" class="header vertical-menu">
+    <div id="onepagenav" class="menu">
+      <nav id="menu" class="mega-menu vertical-left" data-pos="vertical-left">
+        <section class="menu-list-items">
+          <ul class="menu-logo">
+            <li>
+              <a href="/"><img id="logo_img" src="/assets/img/sk.png" width="100%" alt="" /> </a>
+            </li>
+          </ul>
+          <div class="menu-bar">
+            <ul class="menu-links">
+              <li><a href="/">anasayfa <i class="fa fa-angle-right fa-indicator"></i></a></li>
+              <li><a href="javascript:void(0)">Şirketler <i class="fa fa-angle-right fa-indicator"></i></a>
+                <ul class="drop-down-multilevel">
+                  <li><a href="/companies/form">Şirket Ekle</a></li>
+                  <li><a href="/companies">Şirket Listesi</a></li>
+                  <li><a href="/companies/types">Şirket Tipleri</a></li>
+                </ul>
+              </li>
+              <li><a href="javascript:void(0)">Hizmetler <i class="fa fa-angle-right fa-indicator"></i></a>
+                <ul class="drop-down-multilevel">
+                  <li><a href="/services/form">Hizmet Ekle</a></li>
+                  <li><a href="/services">Hizmet Listesi</a></li>
+                  <li><a href="/services/types">Hizmet Tipleri</a></li>
+                </ul>
+              </li>
+              <li><a href="javascript:void(0)">Tesisler <i class="fa fa-angle-right fa-indicator"></i></a>
+                <ul class="drop-down-multilevel">
+                  <li><a href="/facilities/form">Tesis Ekle</a></li>
+                  <li><a href="/facilities">Tesis Listesi</a></li>
+                  <li><a href="/facilities/types">Tesis Tipleri</a></li>
+                  <li><a href="/facilities/applications">Tesis Başvuruları</a></li>
+                </ul>
+              </li>
+              <li><a href="javascript:void(0)">Sahalar <i class="fa fa-angle-right fa-indicator"></i></a>
+                <ul class="drop-down-multilevel">
+                  <li><a href="/pitches/form">Saha Ekle</a></li>
+                  <li><a href="/pitches">Saha Listesi</a></li>
+                  <li><a href="/pitches/types">Saha Tipleri</a></li>
+                  <li><a href="/pitches/tags">Saha Etiketleri</a></li>
+                  <li><a href="/pitches/reservations">Saha Rezervasyonları</a></li>
+                </ul>
+              </li>
+              <li><a href="javascript:void(0)">Kampanyalar <i class="fa fa-angle-right fa-indicator"></i></a>
+                <ul class="drop-down-multilevel">
+                  <li><a href="/campaigns/form">Kampanya Ekle</a></li>
+                  <li><a href="/campaigns">Kampanya Listesi</a></li>
+                  <li><a href="/campaigns/types">Kampanya Tipleri</a></li>
+                  <li><a href="/campaigns/coupons">Kampanya Kuponları</a></li>
+                </ul>
+              </li>
+              <li><a href="javascript:void(0)">Dokümanlar <i class="fa fa-angle-right fa-indicator"></i></a>
+                <ul class="drop-down-multilevel">
+                  <li><a href="/documents">Doküman Listesi</a></li>
+                  <li><a href="/documents/types">Doküman Tipleri</a></li>
+                </ul>
+              </li>
+              <li><a href="javascript:void(0)">Ayarlar <i class="fa fa-angle-right fa-indicator"></i></a>
+                <ul class="drop-down-multilevel">
+                  <li><a href="/how-it-works">Nasıl Çalışır</a></li>
+                  <li><a href="javascript:void(0)">Kullanıcılar <i class="ti-plus fa-indicator"></i>
+                    </a>
+                    <ul class="drop-down-multilevel">
+                      <li><a href="/users/form">Kullanıcı Ekle </a> </li>
+                      <li><a href="/users">Kullanıcı Listesi </a> </li>
+                    </ul>
+                  </li>
+                  <li><a href="javascript:void(0)">Yetkiler <i class="ti-plus fa-indicator"></i> </a>
+                    <ul class="drop-down-multilevel">
+                      <li><a href="/permissions/form">Yetki Ekle </a> </li>
+                      <li><a href="/permissions">Yetki Listesi </a> </li>
+                      <li><a href="/permissions/profiles/form">Profil Ekle</a></li>
+                      <li><a href="/permissions/profiles">Profil Listesi</a></li>
+                    </ul>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </section>
+      </nav>
+    </div>
+    <div class="menu-widgets text-white">
+      <div class="social-icons social-border rounded color-hover text-center">
+        <ul>
+          <li class="social-facebook"><a href="#"><i class="fa fa-facebook"></i></a></li>
+          <li class="social-instagram"><a href="#"><i class="fa fa-instagram"></i></a></li>
+          <li class="social-google"><a href="#"><i class="fa fa-google-plus"></i></a></li>
+          <li class="social-twitter"><a href="#"><i class="fa fa-twitter"></i></a></li>
+          <li class="social-linkedin"><a href="#"><i class="fa fa-linkedin"></i></a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+  <div class="conteiner">
+    <div class="row p-4">
+      <div class="col-md-12">
+        <router-outlet></router-outlet>
+      </div>
+    </div>
+  </div>
+</div>
