@@ -4,141 +4,239 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"log/slog"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
-	"github.com/mstgnz/goduty/config"
-	"github.com/mstgnz/goduty/handlers"
+	"github.com/mstgnz/flowize/handler"
+	"github.com/mstgnz/flowize/internal/auth"
+	"github.com/mstgnz/flowize/internal/config"
+	"github.com/mstgnz/flowize/internal/load"
+	"github.com/mstgnz/flowize/internal/localization"
+	"github.com/mstgnz/flowize/internal/logger"
+	"github.com/mstgnz/flowize/internal/response"
+	"github.com/mstgnz/flowize/internal/validate"
+	"github.com/mstgnz/flowize/model"
 )
 
 var (
-	PORT        string
-	homeHandler handlers.HomeHandler
+	PORT string
+
+	userHandler = handler.UserHandler{}
+	homeHandler = handler.HomeHandler{}
 )
 
 func init() {
 	// Load Env
 	if err := godotenv.Load(".env"); err != nil {
+		logger.Warn(fmt.Sprintf("Load Env Error: %v", err))
 		log.Fatalf("Load Env Error: %v", err)
 	}
 	// init conf
 	_ = config.App()
+	validate.CustomValidate()
 
 	// Load Sql
 	config.App().QUERY = make(map[string]string)
-	if query, err := config.LoadSQLQueries(); err != nil {
+	if query, err := load.LoadSQLQueries(); err != nil {
+		logger.Warn(fmt.Sprintf("Load Sql Error: %v", err))
 		log.Fatalf("Load Sql Error: %v", err)
 	} else {
 		config.App().QUERY = query
 	}
 
-	PORT = os.Getenv("PORT")
+	// Load Translation
+	localization.LoadTranslations()
+	//log.Println(localization.Translations["en"]["routes"])
+
+	// Load Routes
+	config.LoadRoutesFromJSON()
+	//log.Println(config.App().Routes["home"]["tr"])
+
+	PORT = os.Getenv("APP_PORT")
 }
 
 type HttpHandler func(w http.ResponseWriter, r *http.Request) error
 
-func Catch(h HttpHandler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := h(w, r); err != nil {
-			slog.Info("HTTP handler error", "err", err, "path", r.URL.Path)
-		}
-	}
-}
-
 func main() {
-	defer config.App().DB.CloseDatabase()
 
+	defer func() {
+		config.App().Redis.CloseRedis()
+		config.App().Kafka.CloseKafka()
+		config.App().DB.CloseDatabase()
+	}()
+
+	// Chi Define Routes
 	r := chi.NewRouter()
 
+	// Middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 
+	// CORS
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
-		AllowedMethods:   []string{"GET", "PUT", "POST", "DELETE"},
-		AllowedHeaders:   []string{"Accept", "Content-Type", "Authorization"},
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		MaxAge:           300,
 	}))
 
 	workDir, _ := os.Getwd()
 	fileServer(r, "/asset", http.Dir(filepath.Join(workDir, "asset")))
 
+	// swagger
+	r.Get("/swagger", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./view/swagger.html")
+	})
+
 	// web without auth
-	r.Get("/", Catch(homeHandler.Index))
+	r.Group(func(r chi.Router) {
+		r.Use(isAuthMiddleware)
+		for _, lang := range config.App().Langs {
+			r.Get(config.App().Routes["login"][lang], config.Catch(userHandler.LoginHandler))
+			r.Get(config.App().Routes["register"][lang], config.Catch(userHandler.RegisterHandler))
+		}
+		r.Post("/login", config.Catch(userHandler.LoginHandler))
+		r.Post("/register", config.Catch(userHandler.RegisterHandler))
+	})
 
 	// web with auth
 	r.Group(func(r chi.Router) {
 		r.Use(webAuthMiddleware)
-		//r.Get("/", Catch(homeHandler.Index))
-		//r.Get("/profile", Catch(homeHandler.ProfileHandler))
-		//r.Get("/schedules", Catch(homeHandler.ListHandler))
+		for _, lang := range config.App().Langs {
+			r.Get(config.App().Routes["home"][lang], config.Catch(homeHandler.HomeHandler))
+		}
 	})
 
-	// Create a context that listens for interrupt and terminate signals
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL)
-	defer stop()
+	// api without auth
+	r.With(headerMiddleware).Post("/api/login", config.Catch(userHandler.LoginHandler))
+	r.With(headerMiddleware).Post("/api/register", config.Catch(userHandler.RegisterHandler))
 
-	// Run your HTTP server in a goroutine
-	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%s", PORT), r)
-		if err != nil && err != http.ErrServerClosed {
-			log.Fatal(err.Error())
+	r.Route("/api", func(r chi.Router) {
+		r.Use(headerMiddleware)
+		r.Use(apiAuthMiddleware)
+
+	})
+
+	// Not Found
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "api") {
+			_ = response.WriteJSON(w, http.StatusUnauthorized, response.Response{Success: false, Message: "Not Found"})
+			return
 		}
-	}()
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	})
 
-	log.Printf("Goduty is running on %s", PORT)
+	err := http.ListenAndServe(fmt.Sprintf(":%s", PORT), r)
+	if err != nil && err != http.ErrServerClosed {
+		log.Fatal(err.Error())
+	}
+}
 
-	// Block until a signal is received
-	<-ctx.Done()
+func isAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("Authorization")
 
-	log.Println("Shutting down gracefully...")
+		if err == nil {
+			token := strings.Replace(cookie.Value, "Bearer ", "", 1)
+			_, err = auth.GetUserIDByToken(token)
+			if err == nil {
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func webAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
-		if tokenString == "" {
+		cookie, err := r.Cookie("Authorization")
+
+		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
-		/* tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
+		token := strings.Replace(cookie.Value, "Bearer ", "", 1)
 
-		userId, err := config.GetUserIDByToken(tokenString)
+		userId, err := auth.GetUserIDByToken(token)
 		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
 		user_id, err := strconv.Atoi(userId)
-		if err != nil {
+		if err != nil && user_id == 0 {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
-		user := &models.User{}
-		getUser, err := user.GetUserWithId(user_id)
+
+		user := &model.User{}
+		err = user.GetWithId(user_id)
 
 		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), config.CKey("user"), getUser)
-		next.ServeHTTP(w, r.WithContext(ctx)) */
+		ctx := context.WithValue(r.Context(), config.CKey("user"), user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func apiAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" {
+			_ = response.WriteJSON(w, http.StatusUnauthorized, response.Response{Success: false, Message: "Invalid Token"})
+			return
+		}
+		token = strings.Replace(token, "Bearer ", "", 1)
+
+		userId, err := auth.GetUserIDByToken(token)
+		if err != nil {
+			_ = response.WriteJSON(w, http.StatusUnauthorized, response.Response{Success: false, Message: err.Error()})
+			return
+		}
+
+		user_id, err := strconv.Atoi(userId)
+		if err != nil && user_id == 0 {
+			_ = response.WriteJSON(w, http.StatusUnauthorized, response.Response{Success: false, Message: err.Error()})
+			return
+		}
+
+		user := &model.User{}
+		err = user.GetWithId(user_id)
+
+		if err != nil {
+			_ = response.WriteJSON(w, http.StatusUnauthorized, response.Response{Success: false, Message: err.Error()})
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), config.CKey("user"), user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func headerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		checkMethod := r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH"
+		if checkMethod && r.Header.Get("Content-Type") != "application/json" {
+			_ = response.WriteJSON(w, http.StatusBadRequest, response.Response{Success: false, Message: "Invalid Content-Type"})
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
