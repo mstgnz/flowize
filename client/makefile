@@ -1,4 +1,4 @@
-APP_NAME=sahakolay-panel
+APP_NAME=flowize
 PORT=80
 
 # Makefile for building and running the Docker image and container
