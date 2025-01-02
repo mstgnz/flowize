@@ -488,6 +488,106 @@ CREATE TABLE knowledge_articles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Versiyon kontrol sistemi türleri
+CREATE TYPE vcs_type AS ENUM ('github', 'gitlab', 'bitbucket');
+CREATE TYPE vcs_event_type AS ENUM ('push', 'pull_request', 'issue', 'comment', 'review', 'pipeline');
+
+-- VCS Entegrasyonları tablosu
+CREATE TABLE vcs_integrations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID REFERENCES organizations(id),
+    type vcs_type NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    api_url TEXT NOT NULL,
+    access_token TEXT,
+    webhook_secret TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    settings JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- VCS Repositories tablosu
+CREATE TABLE vcs_repositories (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    integration_id UUID REFERENCES vcs_integrations(id),
+    project_id UUID REFERENCES projects(id),
+    repository_id VARCHAR(100) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    url TEXT NOT NULL,
+    default_branch VARCHAR(100) DEFAULT 'main',
+    is_private BOOLEAN DEFAULT TRUE,
+    settings JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- VCS Webhook Events tablosu
+CREATE TABLE vcs_webhook_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    integration_id UUID REFERENCES vcs_integrations(id),
+    repository_id UUID REFERENCES vcs_repositories(id),
+    event_type vcs_event_type NOT NULL,
+    payload JSONB NOT NULL,
+    processed BOOLEAN DEFAULT FALSE,
+    processed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- VCS Issues tablosu
+CREATE TABLE vcs_issues (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    repository_id UUID REFERENCES vcs_repositories(id),
+    issue_number INTEGER NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    state VARCHAR(50),
+    author VARCHAR(100),
+    assignee VARCHAR(100),
+    labels JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(repository_id, issue_number)
+);
+
+-- VCS Pull Requests tablosu
+CREATE TABLE vcs_pull_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    repository_id UUID REFERENCES vcs_repositories(id),
+    pr_number INTEGER NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    state VARCHAR(50),
+    author VARCHAR(100),
+    source_branch VARCHAR(100) NOT NULL,
+    target_branch VARCHAR(100) NOT NULL,
+    is_draft BOOLEAN DEFAULT FALSE,
+    is_merged BOOLEAN DEFAULT FALSE,
+    merged_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(repository_id, pr_number)
+);
+
+-- VCS Pipeline tablosu
+CREATE TABLE vcs_pipelines (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    repository_id UUID REFERENCES vcs_repositories(id),
+    pipeline_id VARCHAR(100) NOT NULL,
+    name VARCHAR(255),
+    status VARCHAR(50),
+    commit_sha VARCHAR(100),
+    branch VARCHAR(100),
+    trigger_event VARCHAR(50),
+    started_at TIMESTAMP,
+    finished_at TIMESTAMP,
+    duration INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- İndeksler
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to);
@@ -507,6 +607,13 @@ CREATE INDEX idx_leaves_user_id ON leaves(user_id);
 CREATE INDEX idx_performance_reviews_user_id ON performance_reviews(user_id);
 CREATE INDEX idx_chat_messages_room_id ON chat_messages(room_id);
 CREATE INDEX idx_knowledge_articles_category_id ON knowledge_articles(category_id);
+CREATE INDEX idx_vcs_integrations_org_id ON vcs_integrations(organization_id);
+CREATE INDEX idx_vcs_repositories_integration_id ON vcs_repositories(integration_id);
+CREATE INDEX idx_vcs_repositories_project_id ON vcs_repositories(project_id);
+CREATE INDEX idx_vcs_webhook_events_integration_id ON vcs_webhook_events(integration_id);
+CREATE INDEX idx_vcs_issues_repository_id ON vcs_issues(repository_id);
+CREATE INDEX idx_vcs_pull_requests_repository_id ON vcs_pull_requests(repository_id);
+CREATE INDEX idx_vcs_pipelines_repository_id ON vcs_pipelines(repository_id);
 
 -- Trigger fonksiyonları
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -620,5 +727,30 @@ CREATE TRIGGER update_knowledge_categories_updated_at
 
 CREATE TRIGGER update_knowledge_articles_updated_at
     BEFORE UPDATE ON knowledge_articles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_vcs_integrations_updated_at
+    BEFORE UPDATE ON vcs_integrations
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_vcs_repositories_updated_at
+    BEFORE UPDATE ON vcs_repositories
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_vcs_issues_updated_at
+    BEFORE UPDATE ON vcs_issues
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_vcs_pull_requests_updated_at
+    BEFORE UPDATE ON vcs_pull_requests
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_vcs_pipelines_updated_at
+    BEFORE UPDATE ON vcs_pipelines
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column(); 
