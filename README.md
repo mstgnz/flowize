@@ -96,6 +96,33 @@ Bu proje, Trello, Jira ve Bitrix24'ün en iyi özelliklerini birleştiren modern
   - Tahmine dayalı analitik
   - Excel/PDF export
 
+- **Versiyon Kontrol Entegrasyonları**
+  - GitHub Entegrasyonu
+    - Repository bağlantısı
+    - Issue takibi
+    - Pull request yönetimi
+    - Commit geçmişi
+    - Code review süreci
+    - GitHub Actions entegrasyonu
+    - GitHub Projects entegrasyonu
+    - GitHub Wiki entegrasyonu
+    - GitHub Security entegrasyonu
+  - GitLab Entegrasyonu
+    - Repository yönetimi
+    - Issue ve merge request takibi
+    - CI/CD pipeline entegrasyonu
+    - GitLab Pages desteği
+    - GitLab Wiki entegrasyonu
+    - GitLab Security entegrasyonu
+    - GitLab Container Registry
+  - Bitbucket Entegrasyonu
+    - Repository yönetimi
+    - Issue ve pull request takibi
+    - Bitbucket Pipelines entegrasyonu
+    - Bitbucket Wiki entegrasyonu
+    - Bitbucket Cloud güvenlik taraması
+    - Jira entegrasyonu
+
 ### Teknik Altyapı
 - **Frontend (Angular)**
   - Material Design UI
