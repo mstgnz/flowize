@@ -1,0 +1,41 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    ports:
+      - "4100:4100"
+    volumes:
+      - ./server:/app
+    networks:
+      - flowize
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    ports:
+      - "4101:4101"
+    volumes:
+      - ./client:/app
+    networks:
+      - flowize
+  hasura:
+    image: hasura/graphql-engine:v2.9.0
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server:/hasura-migrations
+    networks:
+      - flowize
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    networks:
+      - flowize
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - flowize
