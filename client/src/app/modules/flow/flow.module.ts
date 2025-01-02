@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 
-import { AdminRoutingModule } from './admin-routing.module';
+import { FlowRoutingModule } from './flow-routing.module';
 import { DashboardComponent } from './dashboard/dashboard.component';
 
 @NgModule({
@@ -8,8 +8,8 @@ import { DashboardComponent } from './dashboard/dashboard.component';
     DashboardComponent,
   ],
   imports: [
-    AdminRoutingModule,
+    FlowRoutingModule,
   ],
   exports: []
 })
-export class AdminModule { }
+export class FlowModule { }

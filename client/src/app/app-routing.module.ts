@@ -9,7 +9,7 @@ import { ForgotPasswordComponent } from './modules/lobby/forgot-password.compone
 
 const routes: Routes = [
   { path: 'admin', loadChildren: () => import('./modules/admin/admin.module').then(m => m.AdminModule), canActivate: [AppGuard] },
-  { path: 'facility', loadChildren: () => import('./modules/facility/facility.module').then(m => m.FacilityModule), canActivate: [AppGuard] },
+  { path: 'facility', loadChildren: () => import('./modules/flow/flow.module').then(m => m.FlowModule), canActivate: [AppGuard] },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'new-password', component: NewPasswordComponent },
   { path: 'notfound', component: NotfoundComponent },
