@@ -33,7 +33,7 @@ build:
 	docker build -t $(APP_NAME) .
 
 connect:
-ifeq ($(APP_ENV),prod)
+ifeq ($(APP_ENV),local)
 	$(MAKE) db
 	$(MAKE) redis
 	$(MAKE) hasura
