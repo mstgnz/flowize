@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: "Flowize API Documentation"
-  description: "sahakolay.com"
+  description: "flowize.app"
   version: "1.0.0"
 components:
   securitySchemes:

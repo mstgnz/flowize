@@ -19,7 +19,6 @@ import (
 	"github.com/mstgnz/flowize/internal/auth"
 	"github.com/mstgnz/flowize/internal/config"
 	"github.com/mstgnz/flowize/internal/load"
-	"github.com/mstgnz/flowize/internal/localization"
 	"github.com/mstgnz/flowize/internal/logger"
 	"github.com/mstgnz/flowize/internal/response"
 	"github.com/mstgnz/flowize/internal/validate"
@@ -51,14 +50,6 @@ func init() {
 	} else {
 		config.App().QUERY = query
 	}
-
-	// Load Translation
-	localization.LoadTranslations()
-	//log.Println(localization.Translations["en"]["routes"])
-
-	// Load Routes
-	config.LoadRoutesFromJSON()
-	//log.Println(config.App().Routes["home"]["tr"])
 
 	PORT = os.Getenv("APP_PORT")
 }
