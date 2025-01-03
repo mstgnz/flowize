@@ -55,7 +55,7 @@ db: create_volume
 hasura:
 	docker run -d --name $(APP_NAME)-hasura --restart always \
 		-p $(HASURA_PORT):$(HASURA_PORT) \
-		-e HASURA_GRAPHQL_DATABASE_URL="postgres://$(DB_USER):$(DB_PASS)@flowize-postgres:$(DB_PORT)/$(DB_NAME)" \
+		-e HASURA_GRAPHQL_DATABASE_URL="postgres://$(DB_USER):$(DB_PASS)@$(APP_NAME)-postgres:$(DB_PORT)/$(DB_NAME)" \
 		-e HASURA_GRAPHQL_ENABLED_LOG_TYPES="startup, http-log, webhook-log, websocket-log, query-log" \
 		-e HASURA_GRAPHQL_ENABLE_CONSOLE="true" \
 		-e HASURA_GRAPHQL_ADMIN_SECRET=$(HASURA_ADMIN_SECRET) \

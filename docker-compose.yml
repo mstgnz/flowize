@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: server/dockerfile
-    container_name: flowize-server
+    container_name: ${APP_NAME}-server
     restart: always
     ports:
       - "${APP_PORT}:${APP_PORT}"
@@ -12,9 +12,9 @@ services:
     networks:
       - flowize
     depends_on:
-      - "flowize-postgres"
-      - "flowize-redis"
-      - "flowize-hasura"
+      - "postgres"
+      - "redis"
+      - "hasura"
     logging:
       driver: "json-file"
       options:
@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: client/dockerfile
-    container_name: flowize-client
+    container_name: ${APP_NAME}-client
     restart: always
     ports:
       - "${CLIENT_PORT}:4200"
@@ -33,8 +33,7 @@ services:
     networks:
       - flowize
     depends_on:
-      - "flowize-postgres"
-      - "flowize-hasura"
+      - "server"
     logging:
       driver: "json-file"
       options:
@@ -42,22 +41,22 @@ services:
         max-file: "3"
   hasura:
     image: hasura/graphql-engine:v2.9.0
-    container_name: flowize-hasura
+    container_name: ${APP_NAME}-hasura
     restart: always
     ports:
-      - "${HASURA_PORT}:${HASURA_PORT}"
+      - "${HASURA_PORT}:8080"
     volumes:
       - ./server:/hasura-migrations
     networks:
       - flowize
     environment:
-      HASURA_GRAPHQL_DATABASE_URL: "postgres://${DB_USER}:${DB_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+      HASURA_GRAPHQL_DATABASE_URL: "postgres://${DB_USER}:${DB_PASS}@${APP_NAME}-postgres:${DB_PORT}/${DB_NAME}"
       HASURA_GRAPHQL_ENABLED_LOG_TYPES: "startup, http-log, webhook-log, websocket-log, query-log"
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
       HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
       HASURA_GRAPHQL_JWT_SECRET: '{"type":"HS256","key":"${JWT_SECRET}"}'
     depends_on:
-      - "flowize-postgres"
+      - "postgres"
     logging:
       driver: "json-file"
       options:
@@ -65,7 +64,7 @@ services:
         max-file: "3"
   postgres:
     image: postgres:latest
-    container_name: flowize-postgres
+    container_name: ${APP_NAME}-postgres
     restart: always
     ports:
       - "${DB_PORT}:5432"
@@ -80,7 +79,7 @@ services:
       - POSTGRES_DB=${DB_NAME}
   redis:
     image: redis:latest
-    container_name: flowize-redis
+    container_name: ${APP_NAME}-redis
     restart: always
     ports:
       - "${REDIS_PORT}:6379"
